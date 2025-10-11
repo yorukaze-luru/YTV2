@@ -1,0 +1,180 @@
+body {
+  font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+  margin: 40px;
+  background-color: #f5f7fa;
+  color: #333;
+  font-size: 17px;
+}
+
+h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+a {
+  color: #0078d4;
+  text-decoration: none;
+  font-size: 17px;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* 表示フィルター */
+.filters {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin: 30px 0 20px;
+  align-items: flex-end;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  font-size: 16px;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 12px;
+  border-radius: 6px;
+  min-width: 180px;
+}
+
+.filter-item select {
+  padding: 8px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  height: 40px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  margin-top: 24px;
+}
+
+.checkbox-item label {
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+/* コンテナとリストボックス */
+.container {
+  display: flex;
+  gap: 30px;
+  margin-top: 20px;
+  align-items: flex-start;
+}
+
+.list-box {
+  width: 45%;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 16px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  height: 360px;
+  box-sizing: border-box;
+}
+
+.list-box h3 {
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+/* 検索欄（小さめ） */
+#searchInput {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 15px;
+  margin-bottom: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  height: 32px;
+}
+
+select {
+  flex-grow: 1;
+  font-size: 16px;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+/* ボタン */
+.button-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 60px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  min-width: 120px;
+}
+button:hover {
+  background-color: #005ea2;
+}
+
+/* オプション設定 */
+.options {
+  margin: 40px 0;
+  border: 1px solid #ccc;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.options summary {
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.option-item {
+  margin: 12px 0;
+}
+
+/* 結果表示とコピー */
+.result {
+  white-space: pre-wrap;
+  background: #fff;
+  padding: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  margin-top: 24px;
+}
+
+#copyBtn {
+  margin-top: 12px;
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+#copyBtn:hover {
+  background-color: #218838;
+}
+
+.copy-message {
+  margin-top: 12px;
+  font-size: 16px;
+  color: #28a745;
+  display: none;
+}

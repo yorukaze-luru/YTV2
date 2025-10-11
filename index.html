@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>一覧生成ツール</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="tools/style.css" />
+  <link rel="icon" href="tools/icon-192.png" />
+</head>
+<body>
+  <h1>一覧生成ツール</h1>
+  <p><a href="edit.html" target="_blank">▶ 登録データを編集する</a></p>
+
+  <div class="filters">
+    <div class="filter-item">
+      <label for="sortOrder">並び順</label>
+      <select id="sortOrder">
+        <option value="asc">昇順</option>
+        <option value="desc">降順</option>
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <label for="tagFilter">タグ</label>
+      <select id="tagFilter">
+        <option value="">すべて</option>
+      </select>
+    </div>
+
+    <div class="filter-item checkbox-item">
+      <label><input type="checkbox" id="favoriteOnly"> お気に入りのみ</label>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="list-box">
+      <h3>登録名一覧</h3>
+      <input type="text" id="searchInput" placeholder="登録名を検索…" />
+      <select id="nameList" size="8"></select>
+    </div>
+
+    <div class="button-box">
+      <button id="addBtn">追加</button>
+      <button id="removeBtn">削除</button>
+      <button id="generateBtn">生成</button>
+    </div>
+
+    <div class="list-box">
+      <h3>追加済み一覧</h3>
+      <select id="selectedList" size="8"></select>
+    </div>
+  </div>
+
+  <details class="options">
+    <summary>オプション設定</summary>
+    <div class="option-item">
+      <label><input type="checkbox" id="optBlank" checked> 空白を入れる</label>
+    </div>
+    <div class="option-item">
+      <label><input type="checkbox" id="optLabel" checked> 「Youtube: 」や「X(旧Twitter): 」をつける</label>
+    </div>
+    <div class="option-item">
+      <label><input type="checkbox" id="optYoutube" checked> 「Youtube: youtube_url」を表示する</label>
+    </div>
+    <div class="option-item">
+      <label><input type="checkbox" id="optX" checked> 「X(旧Twitter): X_url」を表示する</label>
+    </div>
+  </details>
+
+  <div class="result" id="outputArea"></div>
+  <button id="copyBtn">コピー</button>
+  <div id="copyMessage" class="copy-message"></div>
+
+  <script src="tools/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>登録データ編集</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="tools/edit.css" />
+  <link rel="icon" href="tools/icon-192.png" />
+</head>
+<body>
+  <h1>登録データ編集</h1>
+
+  <form id="entryForm">
+    <div class="form-group">
+      <label for="nameInput">登録名</label>
+      <input type="text" id="nameInput" required />
+    </div>
+    <div class="form-group">
+      <label for="youtubeInput">YouTube URL</label>
+      <input type="url" id="youtubeInput" />
+    </div>
+    <div class="form-group">
+      <label for="xInput">X(旧Twitter) URL</label>
+      <input type="url" id="xInput" />
+    </div>
+    <div class="form-group">
+      <label for="tagsInput">タグ（カンマ区切り）</label>
+      <input type="text" id="tagsInput" />
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="favoriteInput" /> お気に入りにする</label>
+    </div>
+    <button type="submit">追加 / 更新</button>
+  </form>
+
+  <div id="messageArea" class="message"></div>
+
+  <h2>登録済み一覧</h2>
+  <ul id="entryList"></ul>
+
+  <h2>登録データのCSV共有</h2>
+  <div class="csv-share-box">
+    <button id="downloadCsvBtn">CSVでダウンロード</button>
+    <input type="file" id="uploadCsvInput" accept=".csv" />
+  </div>
+
+  <script src="tools/edit.js"></script>
+</body>
+</html>

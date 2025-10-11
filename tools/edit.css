@@ -1,0 +1,118 @@
+body {
+  font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+  margin: 40px;
+  background-color: #f5f7fa;
+  color: #333;
+  font-size: 16px;
+}
+
+h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+h2 {
+  font-size: 22px;
+  margin-top: 40px;
+  margin-bottom: 10px;
+}
+
+form {
+  background: #fff;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  max-width: 600px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="url"] {
+  width: 100%;
+  padding: 8px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 15px;
+  background-color: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+button:hover {
+  background-color: #005ea2;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  max-width: 600px;
+}
+
+li {
+  margin: 8px 0;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+li span {
+  flex-grow: 1;
+  cursor: pointer;
+}
+
+li button {
+  background-color: #d83b01;
+  margin-left: 10px;
+}
+li button:hover {
+  background-color: #a4262c;
+}
+
+.message {
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #e0f7e9;
+  color: #007a33;
+  border: 1px solid #a6d8b9;
+  border-radius: 6px;
+  font-size: 14px;
+  display: none;
+}
+
+.csv-share-box {
+  margin-top: 20px;
+  max-width: 600px;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.csv-share-box button {
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+.csv-share-box input[type="file"] {
+  font-size: 14px;
+}
