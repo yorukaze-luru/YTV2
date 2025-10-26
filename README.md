@@ -164,7 +164,9 @@ MIT ライセンスでは、以下のことが許可されています：
 
 MIT License の詳細 → https://opensource.org/licenses/MIT
 
-## 支援
+---
+
+## ■ 支援はこちらから
 <a href="https://www.buymeacoffee.com/yorukazeluru" target="_blank">
   <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" height="50">
 </a>
