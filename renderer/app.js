@@ -251,7 +251,7 @@ function openEditor(id) {
   $('editorTitle').textContent = e ? '登録を編集' : '新規登録';
   $('fName').value = e ? e.name : '';
   $('fFavorite').checked = e ? e.favorite : false;
-  $('fTags').value = e ? e.tags.join(', ') : '';
+  $('fTags').value = e ? e.tags.join(' ') : '';
   $('fNotes').value = e ? e.notes : '';
   const rows = $('linkRows'); rows.innerHTML = '';
   const links = e && e.links.length ? e.links : [{ label: 'YouTube', url: '' }, { label: 'X (旧Twitter)', url: '' }];
@@ -295,7 +295,7 @@ function bindEvents() {
     const data = {
       name,
       favorite: $('fFavorite').checked,
-      tags: $('fTags').value.split(/[,、]/).map(t => t.trim()).filter(Boolean),
+      tags: $('fTags').value.split(/\s+/).map(t => t.trim()).filter(Boolean),
       notes: $('fNotes').value.trim(),
       links,
     };
