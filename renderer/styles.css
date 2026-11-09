@@ -131,10 +131,12 @@ textarea { resize: vertical; }
 .options-title { font-weight: 700; margin-top: 8px; color: var(--text); }
 .options-box textarea { background: var(--surface); }
 .preview-label { font-weight: 600; margin: 12px 0 6px; color: var(--text); }
-.preview-box { border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); padding: 8px 10px; margin-bottom: 8px; }
-.preview-box .preview-tag { font-size: 11.5px; font-weight: 700; color: var(--muted); margin-right: 8px; }
-.preview-box .preview-text { white-space: pre-wrap; }
-#previewFooter { margin: 8px 0 0; }
+.hf-box { border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); padding: 8px 10px; }
+.hf-box .hf-tag { font-size: 12px; font-weight: 700; color: var(--muted); }
+.hf-box textarea { width: 100%; margin-top: 6px; background: var(--surface); }
+.hf-box + .output-area { margin-top: 8px; }
+.output-area + .hf-box { margin-top: 8px; }
+summary.options-title { cursor: pointer; }
 .output-area { flex: 1; min-height: 180px; background: var(--output-bg); color: var(--text); font-size: 15px; line-height: 1.6; }
 .output-actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
 .char-count { color: var(--muted); margin-left: auto; font-size: 13px; }
