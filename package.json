@@ -10,7 +10,7 @@
       "main.js",
       "preload.js",
       "renderer/**/*",
-      "tools/icon-192.png",
+      "assets/icon.png",
       "package.json"
     ],
     "nsis": {
@@ -23,7 +23,7 @@
     },
     "productName": "YTV2 一覧生成ツール",
     "win": {
-      "icon": "tools/icon-192.png",
+      "icon": "assets/icon.png",
       "target": [
         {
           "arch": [
@@ -56,7 +56,7 @@
     "start": "electron .",
     "test": "node tests/logic.test.js"
   },
-  "version": "2.0.2",
+  "version": "2.1.0",
   "dependencies": {
     "electron-updater": "^6.3.9"
   }
