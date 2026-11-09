@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YTV2 一覧生成ツール</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="../tools/icon-192.png" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <img src="../tools/icon-192.png" alt="" class="brand-icon" />
+      <div>
+        <h1>YTV2 一覧生成ツール</h1>
+        <p class="brand-sub">登録して、クリックで選んで、一覧を生成</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="newEntryBtn" class="btn btn-primary">＋ 新規登録</button>
+      <button id="importBtn" class="btn">📥 取り込み</button>
+      <button id="exportBtn" class="btn">📤 書き出し</button>
+      <button id="themeBtn" class="btn" title="ダーク / ライト切替">🌙</button>
+      <input type="file" id="importFile" accept=".csv,.json" hidden />
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- 登録ライブラリ -->
+    <section class="panel library">
+      <div class="panel-head">
+        <h2>📚 登録ライブラリ</h2>
+        <span id="libraryCount" class="count-badge"></span>
+      </div>
+      <input type="text" id="searchInput" class="search" placeholder="🔍 名前・タグ・メモを検索…" />
+      <div id="tagChips" class="tag-chips"></div>
+      <div class="filter-row">
+        <label class="check"><input type="checkbox" id="favoriteOnly" /> ★ お気に入りのみ</label>
+        <select id="sortOrder" title="並び順">
+          <option value="name-asc">名前順（昇順）</option>
+          <option value="name-desc">名前順（降順）</option>
+          <option value="favorite">お気に入り優先</option>
+          <option value="registered">登録順</option>
+        </select>
+      </div>
+      <div id="entryList" class="entry-list"></div>
+      <div class="panel-foot">
+        <button id="addFilteredBtn" class="btn btn-sub">表示中をすべて追加</button>
+      </div>
+    </section>
+
+    <!-- 作成リスト -->
+    <section class="panel selected">
+      <div class="panel-head">
+        <h2>📝 作成リスト</h2>
+        <span id="selectedCount" class="count-badge"></span>
+      </div>
+      <p class="hint">ライブラリで名前をクリックすると、ここに追加されます。ドラッグで並び替えできます。</p>
+      <div id="selectedList" class="selected-list"></div>
+      <div class="panel-foot">
+        <button id="clearSelectedBtn" class="btn btn-danger-sub">すべて外す</button>
+      </div>
+    </section>
+
+    <!-- 生成・出力 -->
+    <section class="panel output">
+      <div class="panel-head">
+        <h2>✨ 生成・出力</h2>
+      </div>
+      <label class="field-label" for="templateSelect">テンプレート</label>
+      <select id="templateSelect" class="full"></select>
+      <div class="options-grid">
+        <label class="check"><input type="checkbox" id="optNumbering" /> 番号を付ける</label>
+        <label class="check"><input type="checkbox" id="optLabels" checked /> ラベルを付ける（YouTube: など）</label>
+        <label class="check"><input type="checkbox" id="optNotes" /> メモも含める</label>
+        <label class="field-label inline">区切り
+          <select id="optSeparator">
+            <option value="blank">空行</option>
+            <option value="none">空行なし</option>
+            <option value="line">線（----------）</option>
+          </select>
+        </label>
+      </div>
+      <div id="labelFilters" class="label-filters"></div>
+      <details class="advanced">
+        <summary>ヘッダー / フッター</summary>
+        <textarea id="optHeader" rows="2" placeholder="先頭に入れる文章（例：▼参加者一覧）"></textarea>
+        <textarea id="optFooter" rows="2" placeholder="末尾に入れる文章"></textarea>
+      </details>
+      <button id="generateBtn" class="btn btn-generate">🎉 生成する</button>
+      <textarea id="outputArea" class="output-area" placeholder="「生成する」を押すと、ここに一覧が出力されます" spellcheck="false"></textarea>
+      <div class="output-actions">
+        <button id="copyBtn" class="btn btn-primary">📋 コピー</button>
+        <button id="saveTxtBtn" class="btn">💾 .txtで保存</button>
+        <span id="charCount" class="char-count"></span>
+      </div>
+    </section>
+  </main>
+
+  <!-- 登録編集モーダル -->
+  <div id="editorOverlay" class="overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2 id="editorTitle">新規登録</h2>
+      <form id="editorForm">
+        <label class="field-label" for="fName">名前 <span class="required">必須</span></label>
+        <input type="text" id="fName" class="full" required placeholder="例：夜風るる" />
+        <label class="check mt"><input type="checkbox" id="fFavorite" /> ★ お気に入りにする</label>
+        <label class="field-label" for="fTags">タグ（カンマ区切り）</label>
+        <input type="text" id="fTags" class="full" placeholder="例：ゲーム, 実況, ホラー" />
+        <label class="field-label">リンク（YouTube / X 以外も自由に追加できます）</label>
+        <div id="linkRows"></div>
+        <button type="button" id="addLinkBtn" class="btn btn-sub">＋ リンクを追加</button>
+        <label class="field-label" for="fNotes">メモ</label>
+        <textarea id="fNotes" class="full" rows="3" placeholder="自由メモ（生成時に含めることもできます）"></textarea>
+        <div class="modal-actions">
+          <button type="button" id="deleteEntryBtn" class="btn btn-danger" hidden>削除</button>
+          <span class="spacer"></span>
+          <button type="button" id="cancelEditorBtn" class="btn">キャンセル</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 書き出しメニュー -->
+  <div id="exportMenu" class="menu" hidden>
+    <button data-export="csv">CSVで書き出し</button>
+    <button data-export="json">バックアップ（JSON）</button>
+  </div>
+  <div id="importMenuHint" class="toast" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
