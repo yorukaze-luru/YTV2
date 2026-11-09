@@ -65,4 +65,25 @@ ok('generate: namesOnly outputs names only', () => {
   assert.strictEqual(Core.generate(entries, Core.TEMPLATES.namesOnly), 'A');
 });
 
+ok('share code roundtrip keeps Japanese names, tags, notes and links', () => {
+  const entries = [Core.normalizeEntry({
+    name: '夜風るる', favorite: true, tags: ['ゲーム', '実況'], notes: 'メモ',
+    links: [{ label: 'YouTube', url: 'https://youtube.com/@ruru' }, { label: 'Twitch', url: 'https://twitch.tv/ruru' }],
+  })];
+  const code = Core.encodeShareCode(entries);
+  assert.ok(code.startsWith('YTV2.'));
+  const back = Core.decodeShareCode(code);
+  assert.strictEqual(back.length, 1);
+  assert.strictEqual(back[0].name, '夜風るる');
+  assert.deepStrictEqual(back[0].tags, ['ゲーム', '実況']);
+  assert.strictEqual(back[0].notes, 'メモ');
+  assert.deepStrictEqual(back[0].links, entries[0].links);
+});
+
+ok('share code decode rejects garbage and empty input', () => {
+  assert.strictEqual(Core.decodeShareCode(''), null);
+  assert.strictEqual(Core.decodeShareCode('not a code !!!'), null);
+  assert.strictEqual(Core.decodeShareCode('YTV2.####'), null);
+});
+
 console.log(`\nAll ${passed} tests passed.`);
