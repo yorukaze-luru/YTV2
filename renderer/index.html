@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="app-version" content="2.3.0" />
+  <meta name="app-version" content="2.4.0" />
   <title>YTV2 一覧生成ツール</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../assets/icon.png" />
@@ -15,7 +15,7 @@
       <div>
         <h1>YTV2 一覧生成ツール</h1>
         <p class="brand-sub">登録して、クリックで選んで、一覧を生成</p>
-        <p class="version-line">バージョン <span id="versionLabel">v2.3.0</span></p>
+        <p class="version-line">バージョン <span id="versionLabel">v2.4.0</span></p>
       </div>
     </div>
     <div class="header-actions">
@@ -57,6 +57,7 @@
       <div id="entryList" class="entry-list"></div>
       <div class="panel-foot">
         <button id="addFilteredBtn" class="btn btn-sub">表示中をすべて追加</button>
+        <button id="shareImportOpenBtn" class="btn btn-sub">🔗 共有コードで追加</button>
       </div>
     </section>
 
@@ -69,6 +70,7 @@
       <p class="hint">ライブラリで名前をクリックすると、ここに追加されます。ドラッグで並び替えできます。</p>
       <div id="selectedList" class="selected-list"></div>
       <div class="panel-foot">
+        <button id="shareCreateBtn" class="btn btn-sub">🔗 共有コードを作る</button>
         <button id="clearSelectedBtn" class="btn btn-danger-sub">すべて外す</button>
       </div>
     </section>
@@ -136,6 +138,21 @@
           <button type="submit" class="btn btn-primary">保存</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 共有コードモーダル -->
+  <div id="shareOverlay" class="overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2 id="shareTitle">共有コード</h2>
+      <p class="hint" id="shareHint"></p>
+      <textarea id="shareCodeArea" class="full" rows="6" spellcheck="false"></textarea>
+      <div class="modal-actions">
+        <button type="button" id="shareCopyBtn" class="btn" hidden>コードをコピー</button>
+        <span class="spacer"></span>
+        <button type="button" id="shareCloseBtn" class="btn">閉じる</button>
+        <button type="button" id="shareImportBtn" class="btn btn-primary" hidden>ライブラリに追加</button>
+      </div>
     </div>
   </div>
 
