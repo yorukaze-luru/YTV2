@@ -1,0 +1,52 @@
+{
+  "author": "夜風るる",
+  "build": {
+    "appId": "jp.yorukaze.ytv2",
+    "copyright": "Copyright © 2025-2026 夜風るる",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "tools/icon-192.png",
+      "package.json"
+    ],
+    "nsis": {
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "license": "LICENSE",
+      "oneClick": false,
+      "shortcutName": "YTV2 一覧生成ツール"
+    },
+    "productName": "YTV2 一覧生成ツール",
+    "win": {
+      "icon": "tools/icon-192.png",
+      "target": [
+        {
+          "arch": [
+            "x64"
+          ],
+          "target": "nsis"
+        }
+      ]
+    }
+  },
+  "description": "YTV2 - 一覧生成ツール（デスクトップ版）名前やチャンネル情報を登録し、クリックで選んで一覧テキストを生成する",
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "license": "MIT",
+  "main": "main.js",
+  "name": "ytv2-desktop",
+  "scripts": {
+    "dist": "electron-builder --win nsis",
+    "pack": "electron-builder --win nsis --dir",
+    "start": "electron .",
+    "test": "node tests/logic.test.js"
+  },
+  "version": "2.0.0"
+}
