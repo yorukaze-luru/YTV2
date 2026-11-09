@@ -135,9 +135,76 @@ function setupAutoUpdate(win) {
   setInterval(check, 4 * 60 * 60 * 1000); // re-check every 4 hours
 }
 
+// ---- What's New window -------------------------------------------------------
+// On the first launch after an update (the stored version differs from the
+// running one), a separate modal window shows the release notes of the new
+// version, fetched from the GitHub release. The last-run version is kept in
+// a small state file in userData.
+function appStatePath() { return path.join(app.getPath('userData'), 'ytv2-app-state.json'); }
+function readLastVersion() {
+  try { return JSON.parse(fs.readFileSync(appStatePath(), 'utf-8')).lastVersion || null; }
+  catch (_) { return null; }
+}
+function writeLastVersion(v) {
+  try { fs.writeFileSync(appStatePath(), JSON.stringify({ lastVersion: v }, null, 2), 'utf-8'); }
+  catch (_) { /* best effort */ }
+}
+function notesToPlainText(md) {
+  return String(md || '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .trim();
+}
+async function fetchReleaseNotes(version) {
+  const fallback = `v${version} にアップデートしました。\n変更点はリリースページで確認できます：\nhttps://github.com/yorukaze-luru/YTV2/releases/tag/v${version}`;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(`https://api.github.com/repos/yorukaze-luru/YTV2/releases/tags/v${version}`,
+      { headers: { 'User-Agent': 'YTV2-Desktop' }, signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) return fallback;
+    const json = await res.json();
+    const text = notesToPlainText(json.body);
+    return text || fallback;
+  } catch (_) { return fallback; }
+}
+async function maybeShowWhatsNew(win) {
+  if (!app.isPackaged) return;
+  const current = app.getVersion();
+  const prev = readLastVersion();
+  writeLastVersion(current);
+  if (!prev || prev === current) return;
+  const notes = await fetchReleaseNotes(current);
+  if (win.isDestroyed()) return;
+  const wn = new BrowserWindow({
+    width: 600, height: 620, parent: win, modal: true,
+    title: `アップデート内容 - v${current}`,
+    icon: path.join(__dirname, 'assets', 'icon.png'),
+    backgroundColor: '#f4f6fb',
+    webPreferences: {
+      preload: path.join(__dirname, 'whatsnew-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  wn.setMenuBarVisibility(false);
+  wn.loadFile(path.join(__dirname, 'whatsnew.html'));
+  wn.webContents.once('did-finish-load', () => {
+    if (!wn.isDestroyed()) wn.webContents.send('ytv2:whatsnew', { version: current, notes });
+  });
+}
+
+ipcMain.on('ytv2:whatsnew-close', ev => {
+  const w = BrowserWindow.fromWebContents(ev.sender);
+  if (w) w.close();
+});
+
 app.whenReady().then(() => {
   const win = createWindow();
   setupAutoUpdate(win);
+  maybeShowWhatsNew(win);
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
