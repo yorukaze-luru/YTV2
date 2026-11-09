@@ -59,7 +59,7 @@
     "start": "electron .",
     "test": "node tests/logic.test.js"
   },
-  "version": "2.8.1",
+  "version": "2.8.2",
   "dependencies": {
     "electron-updater": "^6.3.9"
   }
