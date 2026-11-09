@@ -531,7 +531,7 @@ function initUpdateUI() {
       bar.style.width = pct + '%'; ptxt.textContent = pct + '%';
     } else if (st.state === 'installing') {
       btn.hidden = true; prog.hidden = true;
-      statusEl.hidden = false; statusEl.textContent = 'インストール中… まもなく自動で再起動します';
+      statusEl.hidden = false; statusEl.textContent = 'インストールの準備中… アプリが閉じた後、案内ウィンドウの表示に従ってください';
       spin.hidden = false;
     } else if (st.state === 'error') {
       prog.hidden = true; spin.hidden = true; // background check errors stay quiet
