@@ -2,7 +2,7 @@
 // Data is stored as JSON in the OS user-data folder
 // (e.g. %APPDATA%/ytv2-desktop/ytv2-data.json on Windows),
 // so updating / reinstalling the app never loses registrations.
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -53,29 +53,33 @@ function createWindow() {
   return win;
 }
 
-// ---- Automatic updates (electron-updater + GitHub Releases) ----------------
-// On launch (packaged builds only), check the latest GitHub release, download
-// it in the background, and offer a restart to install. If the user postpones,
-// the update is installed automatically when the app quits.
+// ---- Updates (electron-updater + GitHub Releases) --------------------------
+// The current version is shown at the top of the window. When a newer release
+// is found, the renderer shows an "アップデートをする" button; the download
+// starts only when the user presses it. Progress is streamed to the renderer
+// (gauge), and when the download finishes the update installs automatically
+// and the app restarts.
 function setupAutoUpdate(win) {
+  ipcMain.handle('ytv2:get-version', () => app.getVersion());
   if (!app.isPackaged) return;
   let autoUpdater;
   try { ({ autoUpdater } = require('electron-updater')); } catch (_) { return; }
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.on('update-downloaded', async (info) => {
-    const { response } = await dialog.showMessageBox(win, {
-      type: 'info',
-      title: 'アップデートの準備ができました',
-      message: `新しいバージョン ${info.version} をダウンロードしました。`,
-      detail: '今すぐ再起動すると更新が適用されます。「後で」を選んだ場合も、アプリ終了時に自動で更新されます。',
-      buttons: ['今すぐ再起動して更新', '後で'],
-      defaultId: 0,
-      cancelId: 1,
-    });
-    if (response === 0) autoUpdater.quitAndInstall();
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  const send = payload => { if (!win.isDestroyed()) win.webContents.send('ytv2:update-status', payload); };
+  autoUpdater.on('update-available', info => send({ state: 'available', version: info.version }));
+  autoUpdater.on('download-progress', p => send({ state: 'downloading', percent: p.percent }));
+  autoUpdater.on('update-downloaded', info => {
+    send({ state: 'installing', version: info.version });
+    setTimeout(() => autoUpdater.quitAndInstall(false, true), 1500);
   });
-  autoUpdater.on('error', () => { /* offline etc: stay silent, data is local */ });
+  autoUpdater.on('error', () => send({ state: 'error' }));
+  ipcMain.handle('ytv2:check-update', async () => {
+    try { await autoUpdater.checkForUpdates(); return true; } catch (_) { return false; }
+  });
+  ipcMain.handle('ytv2:download-update', async () => {
+    try { await autoUpdater.downloadUpdate(); return true; } catch (_) { return false; }
+  });
   const check = () => { autoUpdater.checkForUpdates().catch(() => {}); };
   check();
   setInterval(check, 4 * 60 * 60 * 1000); // re-check every 4 hours
