@@ -101,7 +101,7 @@ npm run dist # NSISインストーラーを dist/ に生成（Windows環境）
 
 ## ライセンス
 
-MIT License - 詳細は [LICENSE](./LICENSE) をご覧ください。
+Apache License 2.0 - 詳細は [LICENSE](./LICENSE) をご覧ください。
 一部要素はAI支援により作成され、手動で確認・調整されています。
 
 作成者：夜風るる
