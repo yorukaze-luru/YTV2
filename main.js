@@ -49,6 +49,7 @@ function createWindow() {
     },
   });
   win.setMenuBarVisibility(false);
+  win.once('ready-to-show', () => { win.focus(); win.webContents.focus(); });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   return win;
 }
@@ -58,7 +59,10 @@ function createWindow() {
 // is found, the renderer shows an "アップデートをする" button; the download
 // starts only when the user presses it. Progress is streamed to the renderer
 // (gauge), and when the download finishes the update installs automatically
-// and the app restarts.
+// but the app is NOT relaunched by the
+// installer: an installer-launched instance can come up unable to receive
+// input (fixed only by a manual restart), so the user starts the app again
+// themselves after the install finishes.
 function setupAutoUpdate(win) {
   ipcMain.handle('ytv2:get-version', () => app.getVersion());
   if (!app.isPackaged) return;
@@ -71,7 +75,7 @@ function setupAutoUpdate(win) {
   autoUpdater.on('download-progress', p => send({ state: 'downloading', percent: p.percent }));
   autoUpdater.on('update-downloaded', info => {
     send({ state: 'installing', version: info.version });
-    setTimeout(() => autoUpdater.quitAndInstall(false, true), 1500);
+    setTimeout(() => autoUpdater.quitAndInstall(false, false), 1500);
   });
   autoUpdater.on('error', () => send({ state: 'error' }));
   ipcMain.handle('ytv2:check-update', async () => {
