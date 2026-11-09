@@ -2,7 +2,7 @@
 // Data is stored as JSON in the OS user-data folder
 // (e.g. %APPDATA%/ytv2-desktop/ytv2-data.json on Windows),
 // so updating / reinstalling the app never loses registrations.
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -50,10 +50,40 @@ function createWindow() {
   });
   win.setMenuBarVisibility(false);
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  return win;
+}
+
+// ---- Automatic updates (electron-updater + GitHub Releases) ----------------
+// On launch (packaged builds only), check the latest GitHub release, download
+// it in the background, and offer a restart to install. If the user postpones,
+// the update is installed automatically when the app quits.
+function setupAutoUpdate(win) {
+  if (!app.isPackaged) return;
+  let autoUpdater;
+  try { ({ autoUpdater } = require('electron-updater')); } catch (_) { return; }
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('update-downloaded', async (info) => {
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'info',
+      title: 'アップデートの準備ができました',
+      message: `新しいバージョン ${info.version} をダウンロードしました。`,
+      detail: '今すぐ再起動すると更新が適用されます。「後で」を選んだ場合も、アプリ終了時に自動で更新されます。',
+      buttons: ['今すぐ再起動して更新', '後で'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) autoUpdater.quitAndInstall();
+  });
+  autoUpdater.on('error', () => { /* offline etc: stay silent, data is local */ });
+  const check = () => { autoUpdater.checkForUpdates().catch(() => {}); };
+  check();
+  setInterval(check, 4 * 60 * 60 * 1000); // re-check every 4 hours
 }
 
 app.whenReady().then(() => {
-  createWindow();
+  const win = createWindow();
+  setupAutoUpdate(win);
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
