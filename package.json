@@ -39,7 +39,8 @@
         "owner": "yorukaze-luru",
         "repo": "YTV2"
       }
-    ]
+    ],
+    "artifactName": "YTV2-Setup-${version}.${ext}"
   },
   "description": "YTV2 - 一覧生成ツール（デスクトップ版）名前やチャンネル情報を登録し、クリックで選んで一覧テキストを生成する",
   "devDependencies": {
@@ -55,7 +56,7 @@
     "start": "electron .",
     "test": "node tests/logic.test.js"
   },
-  "version": "2.0.1",
+  "version": "2.0.2",
   "dependencies": {
     "electron-updater": "^6.3.9"
   }
