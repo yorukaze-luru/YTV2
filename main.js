@@ -71,118 +71,121 @@ function createWindow() {
 // app. Never launches while the installer is still running (that could lock
 // the files being replaced); if the installer never starts, it just brings
 // the current app back.
-function buildWatcherScript() {
-  return `param([string]$Exe, [string]$Target, [string]$Log)
-function Log([string]$m) { try { Add-Content -Path $Log -Value ('[' + (Get-Date -Format 'HH:mm:ss') + '] watcher: ' + $m) -Encoding UTF8 } catch {} }
-Log "start target=$Target"
-$script:prog = 0
-$form = $null; $bar = $null; $pct = $null
-try {
-  Add-Type -AssemblyName System.Windows.Forms
-  Add-Type -AssemblyName System.Drawing
-  $form = New-Object System.Windows.Forms.Form
-  $form.Text = 'YTV2 一覧生成ツール'
-  $form.Size = New-Object System.Drawing.Size(430, 165)
-  $form.StartPosition = 'CenterScreen'
-  $form.FormBorderStyle = 'FixedDialog'
-  $form.MaximizeBox = $false; $form.MinimizeBox = $false; $form.ControlBox = $false
-  $form.TopMost = $true
-  $label = New-Object System.Windows.Forms.Label
-  $label.Text = 'アップデートをインストールしています…'
-  $label.Location = New-Object System.Drawing.Point(20, 18)
-  $label.Size = New-Object System.Drawing.Size(380, 24)
-  $form.Controls.Add($label)
-  $bar = New-Object System.Windows.Forms.ProgressBar
-  $bar.Location = New-Object System.Drawing.Point(20, 54)
-  $bar.Size = New-Object System.Drawing.Size(325, 24)
-  $bar.Minimum = 0; $bar.Maximum = 100
-  $form.Controls.Add($bar)
-  $pct = New-Object System.Windows.Forms.Label
-  $pct.Location = New-Object System.Drawing.Point(355, 56)
-  $pct.Size = New-Object System.Drawing.Size(50, 24)
-  $pct.Text = '0%'
-  $form.Controls.Add($pct)
-  $form.Show()
-  Log 'progress window shown'
-} catch { Log "progress window failed: $_"; $form = $null }
-function Pump([double]$cap) {
-  if ($script:prog -lt $cap) { $script:prog = [Math]::Min($cap, $script:prog + 0.6) }
-  if ($form) {
-    $bar.Value = [int]$script:prog
-    $pct.Text = ([int]$script:prog).ToString() + '%'
-    [System.Windows.Forms.Application]::DoEvents()
-  }
-}
-function Running() { return [bool](Get-Process | Where-Object { $_.ProcessName -like 'YTV2-Setup*' }) }
-function Unlocked() {
-  try { $f = [System.IO.File]::Open($Exe, 'Open', 'ReadWrite', 'None'); $f.Close(); return $true } catch { return $false }
-}
-$launched = $false
-try {
-  $m0 = (Get-Item $Exe).LastWriteTimeUtc
-  $seen = $false
-  $deadline = (Get-Date).AddSeconds(90)
-  while ((Get-Date) -lt $deadline) {
-    if (Running) { $seen = $true; Log 'installer detected (process)'; break }
-    if ((Get-Item $Exe).LastWriteTimeUtc -ne $m0) { $seen = $true; Log 'installer detected (file changed)'; break }
-    if ((Get-Item $Exe).VersionInfo.FileVersion -eq $Target) { $seen = $true; Log 'installer detected (version)'; break }
-    Pump(30); Start-Sleep -Milliseconds 300
-  }
-  if (-not $seen) {
-    Log 'installer never appeared; relaunching current app'
-    Start-Process -FilePath $Exe; $launched = $true
-  } else {
-    $deadline = (Get-Date).AddSeconds(120)
-    while ((Get-Date) -lt $deadline) {
-      if (-not (Running)) { break }
-      Pump(80); Start-Sleep -Milliseconds 300
-    }
-    if (Running) { Log 'installer still running after 120s; continuing to final check anyway' }
-    else { Log 'installer finished' }
-    $okCount = 0
-    $deadline = (Get-Date).AddSeconds(90)
-    while ((Get-Date) -lt $deadline) {
-      $v = $null
-      try { $v = (Get-Item $Exe).VersionInfo.FileVersion } catch {}
-      if (($v -eq $Target) -and (Unlocked)) { $okCount++ } else { $okCount = 0 }
-      if ($okCount -ge 3) { Log "new version in place (v$v)"; break }
-      Pump(95); Start-Sleep -Milliseconds 400
-    }
-    if ($okCount -lt 3) { Log "version check timed out (last seen v$v)" }
-    $script:prog = 100
-    if ($form) { $bar.Value = 100; $pct.Text = '100%'; [System.Windows.Forms.Application]::DoEvents() }
-    Start-Sleep -Milliseconds 700
-    Log 'launching app'
-    Start-Process -FilePath $Exe; $launched = $true
-  }
-} catch { Log "error: $_" }
-if (-not $launched) {
-  if (-not (Running)) { Log 'fallback launch'; try { Start-Process -FilePath $Exe } catch { Log "fallback failed: $_" } }
-  else { Log 'gave up: installer still running' }
-}
-if ($form) { $form.Close() }
-Log 'done'
-`;
+function buildInstallGuideScript(targetVersion) {
+  const q = (v) => String(v).replace(/'/g, "''");
+  const lines = [
+    `$exe = '${q(process.execPath)}'`,
+    `$target = '${q(targetVersion || '')}'`,
+    `$log = '${q(path.join(app.getPath('userData'), 'ytv2-update.log'))}'`,
+    "function Log([string]$m) { try { Add-Content -Path $log -Value ('[' + (Get-Date -Format 'HH:mm:ss') + '] guide: ' + $m) -Encoding UTF8 } catch {} }",
+    'Log "start target=$target"',
+    '$script:prog = 0',
+    '$script:done = $false',
+    'try {',
+    '  Add-Type -AssemblyName System.Windows.Forms',
+    '  Add-Type -AssemblyName System.Drawing',
+    '  $form = New-Object System.Windows.Forms.Form',
+    "  $form.Text = 'YTV2 一覧生成ツール'",
+    '  $form.Size = New-Object System.Drawing.Size(430, 210)',
+    "  $form.StartPosition = 'CenterScreen'",
+    "  $form.FormBorderStyle = 'FixedDialog'",
+    '  $form.MaximizeBox = $false; $form.MinimizeBox = $false; $form.ControlBox = $false',
+    '  $form.TopMost = $true',
+    '  $label = New-Object System.Windows.Forms.Label',
+    "  $label.Text = 'アップデートをインストールしています…'",
+    '  $label.Location = New-Object System.Drawing.Point(20, 16)',
+    '  $label.Size = New-Object System.Drawing.Size(380, 48)',
+    '  $form.Controls.Add($label)',
+    '  $bar = New-Object System.Windows.Forms.ProgressBar',
+    '  $bar.Location = New-Object System.Drawing.Point(20, 78)',
+    '  $bar.Size = New-Object System.Drawing.Size(325, 24)',
+    '  $bar.Minimum = 0; $bar.Maximum = 100',
+    '  $form.Controls.Add($bar)',
+    '  $pct = New-Object System.Windows.Forms.Label',
+    '  $pct.Location = New-Object System.Drawing.Point(355, 80)',
+    '  $pct.Size = New-Object System.Drawing.Size(50, 24)',
+    "  $pct.Text = '0%'",
+    '  $form.Controls.Add($pct)',
+    '  $btn = New-Object System.Windows.Forms.Button',
+    "  $btn.Text = '閉じる'",
+    '  $btn.Location = New-Object System.Drawing.Point(300, 122)',
+    '  $btn.Size = New-Object System.Drawing.Size(105, 34)',
+    '  $btn.Visible = $false',
+    '  $btn.Add_Click({ $form.Close() })',
+    '  $form.Controls.Add($btn)',
+    '  $form.Add_FormClosed({ $script:done = $true })',
+    '  $form.Show()',
+    "  Log 'window shown'",
+    '} catch { Log "window failed: $_"; exit }',
+    'function Pump([double]$cap) {',
+    '  if ($script:prog -lt $cap) { $script:prog = [Math]::Min($cap, $script:prog + 0.6) }',
+    '  $bar.Value = [int]$script:prog',
+    "  $pct.Text = ([int]$script:prog).ToString() + '%'",
+    '  [System.Windows.Forms.Application]::DoEvents()',
+    '}',
+    "function Running() { return [bool](Get-Process | Where-Object { $_.ProcessName -like 'YTV2-Setup*' }) }",
+    '$m0 = (Get-Item $exe).LastWriteTimeUtc',
+    '$seen = $false',
+    '$deadline = (Get-Date).AddSeconds(90)',
+    'while ((Get-Date) -lt $deadline) {',
+    "  if (Running) { $seen = $true; Log 'installer detected (process)'; break }",
+    "  if ((Get-Item $exe).LastWriteTimeUtc -ne $m0) { $seen = $true; Log 'installer detected (file changed)'; break }",
+    "  if ((Get-Item $exe).VersionInfo.FileVersion -eq $target) { $seen = $true; Log 'installer detected (version)'; break }",
+    '  Pump(30); Start-Sleep -Milliseconds 300',
+    '}',
+    'if (-not $seen) {',
+    "  Log 'installer never appeared'",
+    '  $label.Text = "インストールを確認できませんでした。`nアプリを起動して、バージョンを確認してください。"',
+    '} else {',
+    '  $deadline = (Get-Date).AddSeconds(180)',
+    '  while ((Get-Date) -lt $deadline) {',
+    '    if (-not (Running)) { break }',
+    '    Pump(80); Start-Sleep -Milliseconds 300',
+    '  }',
+    "  if (Running) { Log 'installer still running after 180s' } else { Log 'installer finished' }",
+    '  $matched = $false',
+    '  $deadline = (Get-Date).AddSeconds(60)',
+    '  while ((Get-Date) -lt $deadline) {',
+    '    if ((Get-Item $exe).VersionInfo.FileVersion -eq $target) { $matched = $true; break }',
+    '    Pump(95); Start-Sleep -Milliseconds 400',
+    '  }',
+    '  if ($matched) {',
+    '    $script:prog = 100; $bar.Value = 100; $pct.Text = \'100%\'',
+    '    $label.Text = "インストールが完了しました。`nYTV2を起動してください。"',
+    "    Log 'completion notice (version matched)'",
+    '  } else {',
+    '    $label.Text = "インストールが終わったようです。`nYTV2を起動してください。"',
+    "    Log 'completion notice (version not confirmed)'",
+    '  }',
+    '}',
+    '[System.Windows.Forms.Application]::DoEvents()',
+    '$btn.Visible = $true',
+    '$deadline = (Get-Date).AddMinutes(10)',
+    'while (-not $script:done -and (Get-Date) -lt $deadline) {',
+    '  [System.Windows.Forms.Application]::DoEvents()',
+    '  Start-Sleep -Milliseconds 100',
+    '}',
+    "Log 'guide closed'",
+  ];
+  return lines.join('\n');
 }
 
-// Writes the watcher as a .ps1 file in userData and runs it detached with
-// -File (a file is far more reliable than one giant -Command string, and it
-// leaves a log behind — ytv2-update.log — for diagnosing relaunch problems).
-function spawnRelaunchWatcher(targetVersion) {
+// Shows the install progress window and, at the end, a notice asking the
+// user to start YTV2 themselves. It never launches the app (the user asked
+// for manual restarts). Sent as a -Command string: this form displayed fine
+// on the user's machine, while the -File variant never ran (2026-11-09 log).
+function spawnInstallGuide(targetVersion) {
   try {
-    const dir = app.getPath('userData');
-    const logPath = path.join(dir, 'ytv2-update.log');
-    const scriptPath = path.join(dir, 'ytv2-relaunch.ps1');
-    fs.writeFileSync(scriptPath, '\ufeff' + buildWatcherScript(), 'utf-8');
-    try {
-      fs.appendFileSync(logPath,
-        `[${new Date().toISOString()}] app: watcher spawned for v${targetVersion}\n`, 'utf-8');
-    } catch (_) { /* log is best effort */ }
+    fs.appendFileSync(
+      path.join(app.getPath('userData'), 'ytv2-update.log'),
+      `[${new Date().toISOString()}] app: install guide spawned for v${targetVersion}\n`, 'utf-8');
+  } catch (_) { /* log is best effort */ }
+  try {
     spawn('powershell.exe',
-      ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass',
-       '-File', scriptPath, process.execPath, String(targetVersion || ''), logPath],
+      ['-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden',
+       '-Command', buildInstallGuideScript(targetVersion)],
       { detached: true, stdio: 'ignore', windowsHide: true }).unref();
-  } catch (_) { /* if the watcher cannot start, quitAndInstall still proceeds */ }
+  } catch (_) { /* the install itself still proceeds via quitAndInstall */ }
 }
 
 function setupAutoUpdate(win) {
@@ -197,7 +200,9 @@ function setupAutoUpdate(win) {
   autoUpdater.on('download-progress', p => send({ state: 'downloading', percent: p.percent }));
   autoUpdater.on('update-downloaded', info => {
     send({ state: 'installing', version: info.version });
-    spawnRelaunchWatcher(info.version);
+    // a detached guide window shows the install progress and, at the end,
+    // asks the user to start the app themselves (no automatic relaunch)
+    spawnInstallGuide(info.version);
     setTimeout(() => autoUpdater.quitAndInstall(true, false), 1500);
   });
   autoUpdater.on('error', () => send({ state: 'error' }));
