@@ -37,6 +37,19 @@ textarea { resize: vertical; }
 .brand-icon { width: 44px; height: 44px; border-radius: 10px; }
 .brand h1 { font-size: 20px; margin: 0; color: var(--text); }
 .brand-sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.version-line { margin: 1px 0 0; color: var(--muted); font-size: 12.5px; }
+.version-line span { font-weight: 700; color: var(--accent); }
+.update-area { display: flex; align-items: center; gap: 8px; }
+.update-area [hidden] { display: none !important; }
+.update-status { color: var(--accent); font-weight: 600; font-size: 13.5px; }
+.btn-update { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 700; }
+.btn-update:hover { background: var(--accent-hover); }
+.update-progress { display: flex; align-items: center; gap: 8px; }
+.update-progress-track { width: 130px; height: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+.update-progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width .2s ease; }
+.update-progress-text { color: var(--muted); font-size: 13px; min-width: 38px; }
+.spinner { width: 18px; height: 18px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; display: inline-block; animation: ytv2-spin .8s linear infinite; }
+@keyframes ytv2-spin { to { transform: rotate(360deg); } }
 .header-actions { display: flex; gap: 8px; align-items: center; }
 
 .btn {
@@ -49,11 +62,6 @@ textarea { resize: vertical; }
 .btn-sub { background: var(--chip); color: var(--chip-text); border-color: transparent; width: 100%; }
 .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
 .btn-danger-sub { background: transparent; color: var(--danger); border-color: var(--danger); width: 100%; }
-.btn-generate {
-  width: 100%; padding: 12px; font-size: 17px; font-weight: 700;
-  background: var(--accent); color: var(--accent-text); border-color: var(--accent); margin: 12px 0;
-}
-.btn-generate:hover { background: var(--accent-hover); }
 
 .layout {
   flex: 1; display: grid; gap: 14px; padding: 14px;
@@ -119,9 +127,14 @@ textarea { resize: vertical; }
 .required { color: var(--danger); font-size: 12px; }
 .options-grid { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 10px; align-items: center; }
 .label-filters { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; }
-.advanced { margin-top: 12px; }
-.advanced summary { cursor: pointer; color: var(--muted); }
-.advanced textarea { width: 100%; margin-top: 8px; }
+.options-box { border: 1px solid var(--border); border-radius: 10px; padding: 4px 12px 12px; background: var(--surface-2); }
+.options-title { font-weight: 700; margin-top: 8px; color: var(--text); }
+.options-box textarea { background: var(--surface); }
+.preview-label { font-weight: 600; margin: 12px 0 6px; color: var(--text); }
+.preview-box { border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); padding: 8px 10px; margin-bottom: 8px; }
+.preview-box .preview-tag { font-size: 11.5px; font-weight: 700; color: var(--muted); margin-right: 8px; }
+.preview-box .preview-text { white-space: pre-wrap; }
+#previewFooter { margin: 8px 0 0; }
 .output-area { flex: 1; min-height: 180px; background: var(--output-bg); color: var(--text); font-size: 15px; line-height: 1.6; }
 .output-actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
 .char-count { color: var(--muted); margin-left: auto; font-size: 13px; }
@@ -136,12 +149,17 @@ textarea { resize: vertical; }
   width: min(560px, 92vw); max-height: 90vh; overflow-y: auto;
 }
 .modal h2 { margin: 0 0 6px; }
-.link-row { display: flex; gap: 6px; margin-bottom: 6px; }
+.link-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+.link-row.dragging { opacity: .4; }
+.link-row .drag-handle { cursor: grab; color: var(--muted); padding: 0 2px; user-select: none; }
 .link-row select { max-width: 150px; }
 .link-row .custom-label { max-width: 130px; }
 .link-row input[type="text"], .link-row input:not([type]) { flex: 1; }
 .link-row .url { flex: 1; }
-.link-row button { background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 16px; }
+.link-row button { background: transparent; border: none; cursor: pointer; font-size: 16px; }
+.link-row button.link-move { color: var(--muted); font-size: 14px; padding: 2px; }
+.link-row button.link-move:hover { color: var(--text); }
+.link-row button.link-del { color: var(--danger); }
 .modal-actions { display: flex; gap: 8px; margin-top: 18px; align-items: center; }
 .spacer { flex: 1; }
 
