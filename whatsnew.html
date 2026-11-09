@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>アップデート内容</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; padding: 22px 24px;
+    font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", sans-serif;
+    background: #f4f6fb; color: #1c2434;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #141927; color: #edf1f8; }
+    .notes { background: #1f2739; border-color: #3a4763; }
+    button { background: #28334d; color: #edf1f8; border-color: #3a4763; }
+  }
+  h1 { font-size: 19px; margin: 0 0 14px; }
+  .notes {
+    background: #ffffff; border: 1px solid #d5dce9; border-radius: 10px;
+    padding: 14px 16px; white-space: pre-wrap; word-break: break-word;
+    font-size: 14px; line-height: 1.7; max-height: 430px; overflow-y: auto;
+  }
+  .actions { margin-top: 16px; text-align: right; }
+  button {
+    background: #2563eb; color: #fff; border: 1px solid #2563eb; border-radius: 8px;
+    padding: 8px 22px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <h1 id="title">🎉 アップデートしました</h1>
+  <div class="notes" id="notes">読み込み中…</div>
+  <div class="actions"><button id="closeBtn" type="button">閉じる</button></div>
+  <script>
+    window.whatsnew.onData(data => {
+      document.getElementById('title').textContent = `🎉 v${data.version} にアップデートしました`;
+      document.getElementById('notes').textContent = data.notes;
+    });
+    document.getElementById('closeBtn').onclick = () => window.whatsnew.close();
+  </script>
+</body>
+</html>
