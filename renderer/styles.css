@@ -137,7 +137,8 @@ textarea { resize: vertical; }
 .hf-box + .output-area { margin-top: 8px; }
 .output-area + .hf-box { margin-top: 8px; }
 summary.options-title { cursor: pointer; }
-.output-area { flex: 1; min-height: 180px; background: var(--output-bg); color: var(--text); font-size: 15px; line-height: 1.6; }
+.panel.output { overflow-y: auto; }
+.output-area { flex: 1 0 auto; min-height: 120px; background: var(--output-bg); color: var(--text); font-size: 15px; line-height: 1.6; }
 .output-actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
 .char-count { color: var(--muted); margin-left: auto; font-size: 13px; }
 
