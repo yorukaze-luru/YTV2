@@ -176,38 +176,84 @@
 
   // ---- Share codes -----------------------------------------------------------
   // A share code carries the entries of one generated list (the selection).
-  // Format: "YTV2." + base64url( UTF-8 JSON { app, kind, version, entries } )
+  // Compact row format per entry: [name, favorite(0/1), tags[], notes, [[label, url], ...]]
+  // (trailing empty fields are dropped). The JSON is deflate-compressed when
+  // that makes it shorter:
+  //   plain      : "YTV2."    + base64url( UTF-8 JSON )
+  //   compressed : "YTV2.z."  + base64url( deflate-raw( UTF-8 JSON ) )
+  // Codes from v2.4.0 (JSON object with an "entries" key) are still accepted.
   const SHARE_PREFIX = 'YTV2.';
-  function encodeShareCode(entries) {
-    const payload = {
-      app: 'YTV2', kind: 'list-share', version: 2,
-      entries: (entries || []).map(e => ({
-        name: e.name, favorite: !!e.favorite,
-        tags: Array.isArray(e.tags) ? e.tags : [],
-        notes: e.notes || '',
-        links: (e.links || []).map(l => ({ label: l.label, url: l.url })),
-      })),
-    };
-    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+  function b64urlEncode(bytes) {
     let bin = '';
     bytes.forEach(b => { bin += String.fromCharCode(b); });
-    return SHARE_PREFIX + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
-  function decodeShareCode(code) {
+  function b64urlDecode(s) {
+    let b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    const bin = atob(b64);
+    return Uint8Array.from(bin, c => c.charCodeAt(0));
+  }
+  async function streamThrough(stream, bytes) {
+    const out = new Blob([bytes]).stream().pipeThrough(stream);
+    return new Uint8Array(await new Response(out).arrayBuffer());
+  }
+  async function encodeShareCode(entries) {
+    const rows = (entries || []).map(e => {
+      const row = [
+        e.name, e.favorite ? 1 : 0,
+        Array.isArray(e.tags) ? e.tags : [],
+        e.notes || '',
+        (e.links || []).map(l => [l.label, l.url]),
+      ];
+      while (row.length > 1) {
+        const last = row[row.length - 1];
+        if (last === '' || last === 0 || (Array.isArray(last) && last.length === 0)) row.pop();
+        else break;
+      }
+      return row;
+    });
+    const utf8 = new TextEncoder().encode(JSON.stringify(rows));
+    let best = SHARE_PREFIX + b64urlEncode(utf8);
+    try {
+      if (typeof CompressionStream !== 'undefined') {
+        const packed = await streamThrough(new CompressionStream('deflate-raw'), utf8);
+        const zcode = SHARE_PREFIX + 'z.' + b64urlEncode(packed);
+        if (zcode.length < best.length) best = zcode;
+      }
+    } catch (_) { /* fall back to the plain form */ }
+    return best;
+  }
+  async function decodeShareCode(code) {
     let s = String(code || '').trim();
     if (!s) return null;
     if (s.startsWith(SHARE_PREFIX)) s = s.slice(SHARE_PREFIX.length);
     s = s.replace(/\s+/g, '');
     if (!s) return null;
     try {
-      let b64 = s.replace(/-/g, '+').replace(/_/g, '/');
-      while (b64.length % 4) b64 += '=';
-      const bin = atob(b64);
-      const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+      let bytes;
+      if (s.startsWith('z.')) {
+        if (typeof DecompressionStream === 'undefined') return null;
+        bytes = await streamThrough(new DecompressionStream('deflate-raw'), b64urlDecode(s.slice(2)));
+      } else {
+        bytes = b64urlDecode(s);
+      }
       const obj = JSON.parse(new TextDecoder().decode(bytes));
-      const list = Array.isArray(obj) ? obj : obj && obj.entries;
-      if (!Array.isArray(list)) return null;
-      return list.map(normalizeEntry).filter(e => e.name);
+      if (Array.isArray(obj)) {
+        // compact rows (a plain entry array from a manual paste also lands here;
+        // those objects simply fail the row mapping and are dropped)
+        return obj.map(r => {
+          if (!Array.isArray(r)) return null;
+          return normalizeEntry({
+            name: r[0], favorite: !!r[1],
+            tags: Array.isArray(r[2]) ? r[2] : [],
+            notes: typeof r[3] === 'string' ? r[3] : '',
+            links: (Array.isArray(r[4]) ? r[4] : []).map(p => ({ label: p && p[0], url: p && p[1] })),
+          });
+        }).filter(e => e && e.name);
+      }
+      if (obj && Array.isArray(obj.entries)) return obj.entries.map(normalizeEntry).filter(e => e.name);
+      return null;
     } catch (_) { return null; }
   }
 
