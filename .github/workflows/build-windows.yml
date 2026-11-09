@@ -29,6 +29,15 @@ jobs:
         with:
           name: ytv2-installer
           path: dist/*.exe
+      - name: Build browser zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist-browser/stage/assets | Out-Null
+          Copy-Item renderer/app.js,renderer/core.js,renderer/styles.css dist-browser/stage/
+          Copy-Item assets/icon.png dist-browser/stage/assets/
+          (Get-Content renderer/index.html -Raw) -replace '\.\./assets/icon\.png', 'assets/icon.png' | Set-Content dist-browser/stage/index.html -Encoding UTF8
+          Copy-Item BROWSER-README.txt dist-browser/stage/README.txt
+          Compress-Archive -Path dist-browser/stage/* -DestinationPath "dist-browser/YTV2-Browser-${{ github.ref_name }}.zip"
       - name: Attach installer to release (tag builds only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
@@ -37,3 +46,4 @@ jobs:
             dist/*.exe
             dist/latest.yml
             dist/*.blockmap
+            dist-browser/*.zip
