@@ -237,6 +237,40 @@ function doGenerate() {
 }
 function maybeAutoGenerate() { if (!state.outputEdited) doGenerate(); }
 
+// ---------- share codes -----------------------------------------------------------
+function mergeSharedEntries(incoming) {
+  let added = 0, merged = 0, unchanged = 0;
+  incoming.forEach(inc => {
+    const existing = state.entries.find(e => e.name === inc.name);
+    if (!existing) { state.entries.push(Core.normalizeEntry(inc)); added++; return; }
+    let changed = false;
+    inc.tags.forEach(t => { if (!existing.tags.includes(t)) { existing.tags.push(t); changed = true; } });
+    inc.links.forEach(l => {
+      if (!existing.links.some(x => x.label === l.label && x.url === l.url)) {
+        existing.links.push({ label: l.label, url: l.url }); changed = true;
+      }
+    });
+    if (changed) merged++; else unchanged++;
+  });
+  return { added, merged, unchanged };
+}
+function openShareModal(mode, code) {
+  const isExport = mode === 'export';
+  $('shareTitle').textContent = isExport ? '共有コードを作る' : '共有コードで追加';
+  $('shareHint').textContent = isExport
+    ? 'このコードを送ると、相手が作成リストの内容を自分のライブラリに追加できます。新規の名前はそのまま追加され、すでにある名前はタグとリンクだけが足されます。'
+    : '受け取った共有コードを貼り付けて「ライブラリに追加」を押してください。新規の名前はそのまま追加され、すでにある名前はタグとリンクだけが足されます。';
+  const area = $('shareCodeArea');
+  area.value = code || '';
+  area.readOnly = isExport;
+  area.placeholder = isExport ? '' : 'YTV2. から始まる共有コードを貼り付け';
+  $('shareCopyBtn').hidden = !isExport;
+  $('shareImportBtn').hidden = isExport;
+  $('shareOverlay').hidden = false;
+  if (!isExport) area.focus();
+}
+function closeShareModal() { $('shareOverlay').hidden = true; }
+
 // ---------- editor --------------------------------------------------------------
 function moveLinkRow(row, delta) {
   const rows = $('linkRows');
@@ -428,6 +462,34 @@ function bindEvents() {
     saveData(); renderAll(true);
     toast(`取り込み完了：追加 ${added} 件 / 更新 ${updated} 件`);
   });
+
+  // share codes
+  $('shareCreateBtn').onclick = () => {
+    const entries = state.selectedIds.map(entryById).filter(Boolean);
+    if (!entries.length) { toast('作成リストが空です。先に名前をクリックして追加してください'); return; }
+    const code = Core.encodeShareCode(entries);
+    openShareModal('export', code);
+    try {
+      const p = navigator.clipboard && navigator.clipboard.writeText(code);
+      if (p && p.then) p.then(() => toast('共有コードをコピーしました')).catch(() => {});
+    } catch (_) {}
+  };
+  $('shareImportOpenBtn').onclick = () => openShareModal('import', '');
+  $('shareCloseBtn').onclick = closeShareModal;
+  $('shareOverlay').addEventListener('click', ev => { if (ev.target === $('shareOverlay')) closeShareModal(); });
+  $('shareCopyBtn').onclick = async () => {
+    const code = $('shareCodeArea').value;
+    if (!code) return;
+    try { await navigator.clipboard.writeText(code); toast('共有コードをコピーしました'); }
+    catch (_) { $('shareCodeArea').select(); document.execCommand('copy'); toast('共有コードをコピーしました'); }
+  };
+  $('shareImportBtn').onclick = () => {
+    const incoming = Core.decodeShareCode($('shareCodeArea').value);
+    if (!incoming || !incoming.length) { toast('共有コードを読み取れませんでした'); return; }
+    const r = mergeSharedEntries(incoming);
+    saveData(); closeShareModal(); renderAll(true);
+    toast(`追加しました：新規 ${r.added} 件／タグ・リンク追加 ${r.merged} 件／変更なし ${r.unchanged} 件`);
+  };
 
   // theme
   const savedTheme = localStorage.getItem(LS_THEME);
