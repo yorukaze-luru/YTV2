@@ -40,7 +40,7 @@ function createWindow() {
     minWidth: 1020,
     minHeight: 640,
     title: 'YTV2 一覧生成ツール',
-    icon: path.join(__dirname, 'tools', 'icon-192.png'),
+    icon: path.join(__dirname, 'assets', 'icon.png'),
     backgroundColor: '#f4f6fb',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
