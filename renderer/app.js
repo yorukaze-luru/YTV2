@@ -258,7 +258,7 @@ function openShareModal(mode, code) {
   const isExport = mode === 'export';
   $('shareTitle').textContent = isExport ? '共有コードを作る' : '共有コードで追加';
   $('shareHint').textContent = isExport
-    ? 'このコードを送ると、相手が作成リストの内容を自分のライブラリに追加できます。新規の名前はそのまま追加され、すでにある名前はタグとリンクだけが足されます。'
+    ? `このコードを送ると、相手が作成リストの内容を自分のライブラリに追加できます。新規の名前はそのまま追加され、すでにある名前はタグとリンクだけが足されます。（コードの長さ：${(code || '').length} 文字）`
     : '受け取った共有コードを貼り付けて「ライブラリに追加」を押してください。新規の名前はそのまま追加され、すでにある名前はタグとリンクだけが足されます。';
   const area = $('shareCodeArea');
   area.value = code || '';
@@ -464,10 +464,10 @@ function bindEvents() {
   });
 
   // share codes
-  $('shareCreateBtn').onclick = () => {
+  $('shareCreateBtn').onclick = async () => {
     const entries = state.selectedIds.map(entryById).filter(Boolean);
     if (!entries.length) { toast('作成リストが空です。先に名前をクリックして追加してください'); return; }
-    const code = Core.encodeShareCode(entries);
+    const code = await Core.encodeShareCode(entries);
     openShareModal('export', code);
     try {
       const p = navigator.clipboard && navigator.clipboard.writeText(code);
@@ -483,8 +483,8 @@ function bindEvents() {
     try { await navigator.clipboard.writeText(code); toast('共有コードをコピーしました'); }
     catch (_) { $('shareCodeArea').select(); document.execCommand('copy'); toast('共有コードをコピーしました'); }
   };
-  $('shareImportBtn').onclick = () => {
-    const incoming = Core.decodeShareCode($('shareCodeArea').value);
+  $('shareImportBtn').onclick = async () => {
+    const incoming = await Core.decodeShareCode($('shareCodeArea').value);
     if (!incoming || !incoming.length) { toast('共有コードを読み取れませんでした'); return; }
     const r = mergeSharedEntries(incoming);
     saveData(); closeShareModal(); renderAll(true);
