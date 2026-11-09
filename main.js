@@ -63,7 +63,9 @@ function createWindow() {
 // wizard) and the app restarts itself -- but NOT via the installer: an
 // installer-launched instance can come up unable to receive input (only a
 // manual restart fixes it). Instead, a detached watcher process waits for
-// the installer to finish and then starts the app normally.
+// the installer to finish and then starts the app normally. While it
+// waits, the watcher shows a small progress window so the install phase
+// has a moving gauge too (the app itself is closed during the install).
 
 // Waits for the update installer to appear and finish, then relaunches the
 // app. Never launches while the installer is still running (that could lock
@@ -72,25 +74,63 @@ function createWindow() {
 function spawnRelaunchWatcher(targetVersion) {
   const exe = process.execPath.replace(/'/g, "''");
   const ver = String(targetVersion || '').replace(/'/g, "''");
-  const ps = [
+  const lines = [
     `$exe = '${exe}'`,
     `$target = '${ver}'`,
+    `$script:prog = 0`,
+    `$form = $null; $bar = $null; $pct = $null`,
+    `try {`,
+    `  Add-Type -AssemblyName System.Windows.Forms`,
+    `  Add-Type -AssemblyName System.Drawing`,
+    `  $form = New-Object System.Windows.Forms.Form`,
+    `  $form.Text = 'YTV2 一覧生成ツール'`,
+    `  $form.Size = New-Object System.Drawing.Size(430, 165)`,
+    `  $form.StartPosition = 'CenterScreen'`,
+    `  $form.FormBorderStyle = 'FixedDialog'`,
+    `  $form.MaximizeBox = $false; $form.MinimizeBox = $false; $form.ControlBox = $false`,
+    `  $form.TopMost = $true`,
+    `  $label = New-Object System.Windows.Forms.Label`,
+    `  $label.Text = 'アップデートをインストールしています…'`,
+    `  $label.Location = New-Object System.Drawing.Point(20, 18)`,
+    `  $label.Size = New-Object System.Drawing.Size(380, 24)`,
+    `  $form.Controls.Add($label)`,
+    `  $bar = New-Object System.Windows.Forms.ProgressBar`,
+    `  $bar.Location = New-Object System.Drawing.Point(20, 54)`,
+    `  $bar.Size = New-Object System.Drawing.Size(325, 24)`,
+    `  $bar.Minimum = 0; $bar.Maximum = 100`,
+    `  $form.Controls.Add($bar)`,
+    `  $pct = New-Object System.Windows.Forms.Label`,
+    `  $pct.Location = New-Object System.Drawing.Point(355, 56)`,
+    `  $pct.Size = New-Object System.Drawing.Size(50, 24)`,
+    `  $pct.Text = '0%'`,
+    `  $form.Controls.Add($pct)`,
+    `  $form.Show()`,
+    `} catch { $form = $null }`,
+    `function Pump([double]$cap) {`,
+    `  if ($script:prog -lt $cap) { $script:prog = [Math]::Min($cap, $script:prog + 0.6) }`,
+    `  if ($form) {`,
+    `    $bar.Value = [int]$script:prog`,
+    `    $pct.Text = ([int]$script:prog).ToString() + '%'`,
+    `    [System.Windows.Forms.Application]::DoEvents()`,
+    `  }`,
+    `}`,
+    `function Running() { return [bool](Get-Process | Where-Object { $_.ProcessName -like 'YTV2-Setup*' }) }`,
     `$m0 = (Get-Item $exe).LastWriteTimeUtc`,
     `$seen = $false`,
     `$deadline = (Get-Date).AddSeconds(90)`,
     `while ((Get-Date) -lt $deadline) {`,
-    `  if (Get-Process | Where-Object { $_.ProcessName -like 'YTV2-Setup*' }) { $seen = $true; break }`,
+    `  if (Running) { $seen = $true; break }`,
     `  if ((Get-Item $exe).LastWriteTimeUtc -ne $m0) { $seen = $true; break }`,
     `  if ((Get-Item $exe).VersionInfo.FileVersion -eq $target) { $seen = $true; break }`,
-    `  Start-Sleep -Milliseconds 500`,
+    `  Pump(30); Start-Sleep -Milliseconds 300`,
     `}`,
-    `if (-not $seen) { Start-Process -FilePath $exe; exit }`,
+    `if (-not $seen) { if ($form) { $form.Close() }; Start-Process -FilePath $exe; exit }`,
     `$deadline = (Get-Date).AddMinutes(6)`,
     `while ((Get-Date) -lt $deadline) {`,
-    `  if (-not (Get-Process | Where-Object { $_.ProcessName -like 'YTV2-Setup*' })) { break }`,
-    `  Start-Sleep -Seconds 1`,
+    `  if (-not (Running)) { break }`,
+    `  Pump(80); Start-Sleep -Milliseconds 300`,
     `}`,
-    `if (Get-Process | Where-Object { $_.ProcessName -like 'YTV2-Setup*' }) { exit }`,
+    `if (Running) { if ($form) { $form.Close() }; exit }`,
     `$deadline = (Get-Date).AddSeconds(60)`,
     `while ((Get-Date) -lt $deadline) {`,
     `  try {`,
@@ -98,16 +138,20 @@ function spawnRelaunchWatcher(targetVersion) {
     `    $f = [System.IO.File]::Open($exe, 'Open', 'ReadWrite', 'None'); $f.Close()`,
     `    if ($v -eq $target) { break }`,
     `  } catch {}`,
-    `  Start-Sleep -Seconds 1`,
+    `  Pump(95); Start-Sleep -Milliseconds 300`,
     `}`,
-    `Start-Sleep -Seconds 2`,
+    `$script:prog = 100`,
+    `if ($form) { $bar.Value = 100; $pct.Text = '100%'; [System.Windows.Forms.Application]::DoEvents() }`,
+    `Start-Sleep -Milliseconds 700`,
+    `if ($form) { $form.Close() }`,
     `Start-Process -FilePath $exe`,
-  ].join('; ');
+  ];
   try {
-    spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', ps],
+    spawn('powershell.exe', ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-Command', lines.join('\n')],
       { detached: true, stdio: 'ignore', windowsHide: true }).unref();
   } catch (_) { /* if the watcher cannot start, quitAndInstall still proceeds */ }
 }
+
 function setupAutoUpdate(win) {
   ipcMain.handle('ytv2:get-version', () => app.getVersion());
   if (!app.isPackaged) return;
