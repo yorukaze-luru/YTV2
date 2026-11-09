@@ -81,7 +81,7 @@ textarea { resize: vertical; }
   background: var(--chip); color: var(--chip-text); border-radius: 999px;
   padding: 1px 10px; font-size: 13px; font-weight: 600;
 }
-.panel-foot { margin-top: 10px; }
+.panel-foot { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .hint { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
 .search { width: 100%; margin-bottom: 8px; }
 
