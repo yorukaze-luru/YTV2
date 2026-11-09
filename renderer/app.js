@@ -223,14 +223,6 @@ function fullOutputText() {
   const body = $('outputArea').value;
   return [h, body, f].filter(x => x).join('\n\n');
 }
-function renderPreviewBoxes() {
-  const h = $('optHeader').value.trim();
-  const f = $('optFooter').value.trim();
-  const hb = $('previewHeader'), fb = $('previewFooter');
-  hb.hidden = !h; fb.hidden = !f;
-  hb.querySelector('.preview-text').textContent = h;
-  fb.querySelector('.preview-text').textContent = f;
-}
 function updateCharCount() {
   const t = fullOutputText();
   $('charCount').textContent = t ? `${t.length} 文字` : '';
@@ -241,7 +233,6 @@ function doGenerate() {
   const text = entries.length ? Core.generate(entries, opts) : '';
   $('outputArea').value = text;
   state.outputEdited = false;
-  renderPreviewBoxes();
   updateCharCount();
 }
 function maybeAutoGenerate() { if (!state.outputEdited) doGenerate(); }
@@ -382,7 +373,7 @@ function bindEvents() {
     $(id).addEventListener('change', () => { state.outputEdited = false; doGenerate(); });
   });
   ['optHeader', 'optFooter'].forEach(id => {
-    $(id).addEventListener('input', () => { renderPreviewBoxes(); updateCharCount(); });
+    $(id).addEventListener('input', () => { updateCharCount(); });
   });
   $('outputArea').addEventListener('input', () => { state.outputEdited = true; updateCharCount(); });
   $('copyBtn').onclick = async () => {
