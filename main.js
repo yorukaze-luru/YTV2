@@ -4,6 +4,7 @@
 // so updating / reinstalling the app never loses registrations.
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const { spawn } = require('child_process');
 const fs = require('fs');
 
 const DATA_FILE = () => path.join(app.getPath('userData'), 'ytv2-data.json');
@@ -58,11 +59,55 @@ function createWindow() {
 // The current version is shown at the top of the window. When a newer release
 // is found, the renderer shows an "アップデートをする" button; the download
 // starts only when the user presses it. Progress is streamed to the renderer
-// (gauge), and when the download finishes the update installs automatically
-// but the app is NOT relaunched by the
-// installer: an installer-launched instance can come up unable to receive
-// input (fixed only by a manual restart), so the user starts the app again
-// themselves after the install finishes.
+// (gauge). When the download finishes, the install runs silently (no setup
+// wizard) and the app restarts itself -- but NOT via the installer: an
+// installer-launched instance can come up unable to receive input (only a
+// manual restart fixes it). Instead, a detached watcher process waits for
+// the installer to finish and then starts the app normally.
+
+// Waits for the update installer to appear and finish, then relaunches the
+// app. Never launches while the installer is still running (that could lock
+// the files being replaced); if the installer never starts, it just brings
+// the current app back.
+function spawnRelaunchWatcher(targetVersion) {
+  const exe = process.execPath.replace(/'/g, "''");
+  const ver = String(targetVersion || '').replace(/'/g, "''");
+  const ps = [
+    `$exe = '${exe}'`,
+    `$target = '${ver}'`,
+    `$m0 = (Get-Item $exe).LastWriteTimeUtc`,
+    `$seen = $false`,
+    `$deadline = (Get-Date).AddSeconds(90)`,
+    `while ((Get-Date) -lt $deadline) {`,
+    `  if (Get-Process | Where-Object { $_.ProcessName -like 'YTV2-Setup*' }) { $seen = $true; break }`,
+    `  if ((Get-Item $exe).LastWriteTimeUtc -ne $m0) { $seen = $true; break }`,
+    `  if ((Get-Item $exe).VersionInfo.FileVersion -eq $target) { $seen = $true; break }`,
+    `  Start-Sleep -Milliseconds 500`,
+    `}`,
+    `if (-not $seen) { Start-Process -FilePath $exe; exit }`,
+    `$deadline = (Get-Date).AddMinutes(6)`,
+    `while ((Get-Date) -lt $deadline) {`,
+    `  if (-not (Get-Process | Where-Object { $_.ProcessName -like 'YTV2-Setup*' })) { break }`,
+    `  Start-Sleep -Seconds 1`,
+    `}`,
+    `if (Get-Process | Where-Object { $_.ProcessName -like 'YTV2-Setup*' }) { exit }`,
+    `$deadline = (Get-Date).AddSeconds(60)`,
+    `while ((Get-Date) -lt $deadline) {`,
+    `  try {`,
+    `    $v = (Get-Item $exe).VersionInfo.FileVersion`,
+    `    $f = [System.IO.File]::Open($exe, 'Open', 'ReadWrite', 'None'); $f.Close()`,
+    `    if ($v -eq $target) { break }`,
+    `  } catch {}`,
+    `  Start-Sleep -Seconds 1`,
+    `}`,
+    `Start-Sleep -Seconds 2`,
+    `Start-Process -FilePath $exe`,
+  ].join('; ');
+  try {
+    spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', ps],
+      { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  } catch (_) { /* if the watcher cannot start, quitAndInstall still proceeds */ }
+}
 function setupAutoUpdate(win) {
   ipcMain.handle('ytv2:get-version', () => app.getVersion());
   if (!app.isPackaged) return;
@@ -75,7 +120,8 @@ function setupAutoUpdate(win) {
   autoUpdater.on('download-progress', p => send({ state: 'downloading', percent: p.percent }));
   autoUpdater.on('update-downloaded', info => {
     send({ state: 'installing', version: info.version });
-    setTimeout(() => autoUpdater.quitAndInstall(false, false), 1500);
+    spawnRelaunchWatcher(info.version);
+    setTimeout(() => autoUpdater.quitAndInstall(true, false), 1500);
   });
   autoUpdater.on('error', () => send({ state: 'error' }));
   ipcMain.handle('ytv2:check-update', async () => {
