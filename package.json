@@ -11,7 +11,9 @@
       "preload.js",
       "renderer/**/*",
       "assets/icon.png",
-      "package.json"
+      "package.json",
+      "whatsnew.html",
+      "whatsnew-preload.js"
     ],
     "nsis": {
       "allowToChangeInstallationDirectory": true,
@@ -57,7 +59,7 @@
     "start": "electron .",
     "test": "node tests/logic.test.js"
   },
-  "version": "2.6.0",
+  "version": "2.7.0",
   "dependencies": {
     "electron-updater": "^6.3.9"
   }
