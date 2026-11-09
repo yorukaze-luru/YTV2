@@ -11,6 +11,7 @@ const state = {
   outputEdited: false,
   loaded: false,
 };
+let dragLinkRow = null;
 
 // ---------- storage ---------------------------------------------------------
 const LS_DATA = 'ytv2-v2-data';
@@ -216,19 +217,49 @@ function renderLabelFilters() {
     box.appendChild(lab);
   });
 }
-function doGenerate(flash) {
+function fullOutputText() {
+  const h = $('optHeader').value.trim();
+  const f = $('optFooter').value.trim();
+  const body = $('outputArea').value;
+  return [h, body, f].filter(x => x).join('\n\n');
+}
+function renderPreviewBoxes() {
+  const h = $('optHeader').value.trim();
+  const f = $('optFooter').value.trim();
+  const hb = $('previewHeader'), fb = $('previewFooter');
+  hb.hidden = !h; fb.hidden = !f;
+  hb.querySelector('.preview-text').textContent = h;
+  fb.querySelector('.preview-text').textContent = f;
+}
+function updateCharCount() {
+  const t = fullOutputText();
+  $('charCount').textContent = t ? `${t.length} 文字` : '';
+}
+function doGenerate() {
   const entries = state.selectedIds.map(entryById).filter(Boolean);
-  const text = entries.length ? Core.generate(entries, currentOptions()) : '';
+  const opts = Object.assign(currentOptions(), { header: '', footer: '' });
+  const text = entries.length ? Core.generate(entries, opts) : '';
   $('outputArea').value = text;
   state.outputEdited = false;
-  $('charCount').textContent = text ? `${text.length} 文字` : '';
-  if (flash) toast(entries.length ? '生成しました' : '作成リストが空です');
+  renderPreviewBoxes();
+  updateCharCount();
 }
-function maybeAutoGenerate() { if (!state.outputEdited) doGenerate(false); }
+function maybeAutoGenerate() { if (!state.outputEdited) doGenerate(); }
 
 // ---------- editor --------------------------------------------------------------
+function moveLinkRow(row, delta) {
+  const rows = $('linkRows');
+  const items = [...rows.children];
+  const i = items.indexOf(row);
+  const j = i + delta;
+  if (i === -1 || j < 0 || j >= items.length) return;
+  if (delta < 0) rows.insertBefore(row, items[j]);
+  else rows.insertBefore(items[j], row);
+}
 function linkRow(link) {
   const row = document.createElement('div'); row.className = 'link-row';
+  const handle = document.createElement('span'); handle.className = 'drag-handle'; handle.textContent = '\u283f'; handle.title = 'ドラッグで並び替え';
+  handle.addEventListener('mousedown', () => { row.draggable = true; });
   const sel = document.createElement('select');
   Core.LINK_PRESETS.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
   const custom = document.createElement('input'); custom.className = 'custom-label'; custom.placeholder = '自由ラベル'; custom.hidden = true;
@@ -236,8 +267,21 @@ function linkRow(link) {
   else if (link && link.label) sel.value = link.label;
   sel.onchange = () => { custom.hidden = sel.value !== 'その他'; };
   const url = document.createElement('input'); url.className = 'url'; url.placeholder = 'https://…'; url.value = link ? link.url : '';
-  const del = document.createElement('button'); del.type = 'button'; del.textContent = '✕'; del.onclick = () => row.remove();
-  row.append(sel, custom, url, del);
+  const up = document.createElement('button'); up.type = 'button'; up.className = 'link-move'; up.textContent = '↑'; up.title = '上へ'; up.onclick = () => moveLinkRow(row, -1);
+  const down = document.createElement('button'); down.type = 'button'; down.className = 'link-move'; down.textContent = '↓'; down.title = '下へ'; down.onclick = () => moveLinkRow(row, 1);
+  const del = document.createElement('button'); del.type = 'button'; del.className = 'link-del'; del.textContent = '✕'; del.onclick = () => row.remove();
+  row.append(handle, sel, custom, url, up, down, del);
+  row.addEventListener('dragstart', ev => { dragLinkRow = row; row.classList.add('dragging'); try { ev.dataTransfer.setData('text/plain', 'link-row'); } catch (_) {} });
+  row.addEventListener('dragend', () => { row.classList.remove('dragging'); row.draggable = false; dragLinkRow = null; });
+  row.addEventListener('dragover', ev => ev.preventDefault());
+  row.addEventListener('drop', ev => {
+    ev.preventDefault();
+    if (!dragLinkRow || dragLinkRow === row) return;
+    const items = [...$('linkRows').children];
+    const from = items.indexOf(dragLinkRow), to = items.indexOf(row);
+    if (from === -1 || to === -1) return;
+    if (from < to) row.after(dragLinkRow); else row.before(dragLinkRow);
+  });
   row._collect = () => {
     const label = sel.value === 'その他' ? (custom.value.trim() || 'その他') : sel.value;
     const u = url.value.trim();
@@ -332,21 +376,23 @@ function bindEvents() {
     $('optNotes').checked = !!t.includeNotes;
     $('optSeparator').value = t.separator || 'blank';
     state.outputEdited = false;
-    doGenerate(false);
+    doGenerate();
   };
   ['optNumbering', 'optLabels', 'optNotes', 'optSeparator', 'optHeader', 'optFooter'].forEach(id => {
-    $(id).addEventListener('change', () => { state.outputEdited = false; doGenerate(false); });
+    $(id).addEventListener('change', () => { state.outputEdited = false; doGenerate(); });
   });
-  $('outputArea').addEventListener('input', () => { state.outputEdited = true; $('charCount').textContent = `${$('outputArea').value.length} 文字`; });
-  $('generateBtn').onclick = () => doGenerate(true);
+  ['optHeader', 'optFooter'].forEach(id => {
+    $(id).addEventListener('input', () => { renderPreviewBoxes(); updateCharCount(); });
+  });
+  $('outputArea').addEventListener('input', () => { state.outputEdited = true; updateCharCount(); });
   $('copyBtn').onclick = async () => {
-    const text = $('outputArea').value;
+    const text = fullOutputText();
     if (!text) { toast('コピーする内容がありません'); return; }
     try { await navigator.clipboard.writeText(text); toast('コピーしました！'); }
     catch (_) { $('outputArea').select(); document.execCommand('copy'); toast('コピーしました！'); }
   };
   $('saveTxtBtn').onclick = () => {
-    const text = $('outputArea').value;
+    const text = fullOutputText();
     if (!text) { toast('保存する内容がありません'); return; }
     download('ytv2-list.txt', text);
     toast('保存しました');
@@ -404,9 +450,46 @@ function bindEvents() {
   };
 }
 
+// ---------- updates (desktop only) -----------------------------------------------------
+function initUpdateUI() {
+  const meta = document.querySelector('meta[name="app-version"]');
+  if (meta && meta.content) $('versionLabel').textContent = 'v' + meta.content;
+  const d = window.ytv2Desktop;
+  if (!d || !d.onUpdateStatus) return; // browser version: version display only
+  if (d.getVersion) d.getVersion().then(v => { if (v) $('versionLabel').textContent = 'v' + v; }).catch(() => {});
+  const statusEl = $('updateStatus'), btn = $('updateBtn'), prog = $('updateProgress');
+  const bar = $('updateProgressBar'), ptxt = $('updateProgressText'), spin = $('updateSpinner');
+  btn.onclick = () => {
+    if (d.downloadUpdate) d.downloadUpdate();
+    btn.hidden = true;
+    statusEl.hidden = false; statusEl.textContent = 'アップデートをダウンロード中…';
+    prog.hidden = false; bar.style.width = '0%'; ptxt.textContent = '0%';
+  };
+  d.onUpdateStatus(st => {
+    if (!st) return;
+    if (st.state === 'available') {
+      statusEl.hidden = false;
+      statusEl.textContent = `新しいバージョン v${st.version} があります`;
+      btn.hidden = false; prog.hidden = true; spin.hidden = true;
+    } else if (st.state === 'downloading') {
+      btn.hidden = true; prog.hidden = false; spin.hidden = true;
+      statusEl.hidden = false; statusEl.textContent = 'アップデートをダウンロード中…';
+      const pct = Math.max(0, Math.min(100, Math.floor(st.percent || 0)));
+      bar.style.width = pct + '%'; ptxt.textContent = pct + '%';
+    } else if (st.state === 'installing') {
+      btn.hidden = true; prog.hidden = true;
+      statusEl.hidden = false; statusEl.textContent = 'インストール中… まもなく自動で再起動します';
+      spin.hidden = false;
+    } else if (st.state === 'error') {
+      prog.hidden = true; spin.hidden = true; // background check errors stay quiet
+    }
+  });
+}
+
 // ---------- init ----------------------------------------------------------------------
 (async function init() {
   bindEvents();
+  initUpdateUI();
   const t = Core.TEMPLATES.standard;
   $('optNumbering').checked = !!t.numbering;
   $('optLabels').checked = !!t.showLabels;
