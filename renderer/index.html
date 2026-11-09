@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>YTV2 一覧生成ツール</title>
   <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" href="../tools/icon-192.png" />
+  <link rel="icon" href="../assets/icon.png" />
 </head>
 <body>
   <header class="app-header">
     <div class="brand">
-      <img src="../tools/icon-192.png" alt="" class="brand-icon" />
+      <img src="../assets/icon.png" alt="" class="brand-icon" />
       <div>
         <h1>YTV2 一覧生成ツール</h1>
         <p class="brand-sub">登録して、クリックで選んで、一覧を生成</p>
@@ -103,10 +103,10 @@
       <h2 id="editorTitle">新規登録</h2>
       <form id="editorForm">
         <label class="field-label" for="fName">名前 <span class="required">必須</span></label>
-        <input type="text" id="fName" class="full" required placeholder="例：夜風るる" />
+        <input type="text" id="fName" class="full" required />
         <label class="check mt"><input type="checkbox" id="fFavorite" /> ★ お気に入りにする</label>
-        <label class="field-label" for="fTags">タグ（カンマ区切り）</label>
-        <input type="text" id="fTags" class="full" placeholder="例：ゲーム, 実況, ホラー" />
+        <label class="field-label" for="fTags">タグ（空白区切り）</label>
+        <input type="text" id="fTags" class="full" placeholder="例：ゲーム 実況 ホラー" />
         <label class="field-label">リンク（YouTube / X 以外も自由に追加できます）</label>
         <div id="linkRows"></div>
         <button type="button" id="addLinkBtn" class="btn btn-sub">＋ リンクを追加</button>
