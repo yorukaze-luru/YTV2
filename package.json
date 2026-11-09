@@ -56,7 +56,7 @@
     "start": "electron .",
     "test": "node tests/logic.test.js"
   },
-  "version": "2.3.0",
+  "version": "2.4.0",
   "dependencies": {
     "electron-updater": "^6.3.9"
   }
