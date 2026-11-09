@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="app-version" content="2.2.0" />
   <title>YTV2 一覧生成ツール</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="../assets/icon.png" />
@@ -14,9 +15,19 @@
       <div>
         <h1>YTV2 一覧生成ツール</h1>
         <p class="brand-sub">登録して、クリックで選んで、一覧を生成</p>
+        <p class="version-line">バージョン <span id="versionLabel">v2.2.0</span></p>
       </div>
     </div>
     <div class="header-actions">
+      <div class="update-area" id="updateArea">
+        <span id="updateStatus" class="update-status" hidden></span>
+        <button id="updateBtn" class="btn btn-update" hidden>アップデートをする</button>
+        <div id="updateProgress" class="update-progress" hidden>
+          <div class="update-progress-track"><div id="updateProgressBar" class="update-progress-bar"></div></div>
+          <span id="updateProgressText" class="update-progress-text"></span>
+        </div>
+        <span id="updateSpinner" class="spinner" hidden></span>
+      </div>
       <button id="newEntryBtn" class="btn btn-primary">＋ 新規登録</button>
       <button id="importBtn" class="btn">📥 取り込み</button>
       <button id="exportBtn" class="btn">📤 書き出し</button>
@@ -67,28 +78,32 @@
       <div class="panel-head">
         <h2>✨ 生成・出力</h2>
       </div>
-      <label class="field-label" for="templateSelect">テンプレート</label>
-      <select id="templateSelect" class="full"></select>
-      <div class="options-grid">
-        <label class="check"><input type="checkbox" id="optNumbering" /> 番号を付ける</label>
-        <label class="check"><input type="checkbox" id="optLabels" checked /> ラベルを付ける（YouTube: など）</label>
-        <label class="check"><input type="checkbox" id="optNotes" /> メモも含める</label>
-        <label class="field-label inline">区切り
-          <select id="optSeparator">
-            <option value="blank">空行</option>
-            <option value="none">空行なし</option>
-            <option value="line">線（----------）</option>
-          </select>
-        </label>
+      <div class="options-box">
+        <div class="options-title">オプション</div>
+        <label class="field-label" for="templateSelect">テンプレート</label>
+        <select id="templateSelect" class="full"></select>
+        <div class="options-grid">
+          <label class="check"><input type="checkbox" id="optNumbering" /> 番号を付ける</label>
+          <label class="check"><input type="checkbox" id="optLabels" checked /> ラベルを付ける（YouTube: など）</label>
+          <label class="check"><input type="checkbox" id="optNotes" /> メモも含める</label>
+          <label class="field-label inline">区切り
+            <select id="optSeparator">
+              <option value="blank">空行</option>
+              <option value="none">空行なし</option>
+              <option value="line">線（----------）</option>
+            </select>
+          </label>
+        </div>
+        <div id="labelFilters" class="label-filters"></div>
+        <label class="field-label" for="optHeader">ヘッダー</label>
+        <textarea id="optHeader" class="full" rows="2" placeholder="先頭に入れる文章（例：▼参加者一覧）"></textarea>
+        <label class="field-label" for="optFooter">フッター</label>
+        <textarea id="optFooter" class="full" rows="2" placeholder="末尾に入れる文章"></textarea>
       </div>
-      <div id="labelFilters" class="label-filters"></div>
-      <details class="advanced">
-        <summary>ヘッダー / フッター</summary>
-        <textarea id="optHeader" rows="2" placeholder="先頭に入れる文章（例：▼参加者一覧）"></textarea>
-        <textarea id="optFooter" rows="2" placeholder="末尾に入れる文章"></textarea>
-      </details>
-      <button id="generateBtn" class="btn btn-generate">🎉 生成する</button>
-      <textarea id="outputArea" class="output-area" placeholder="「生成する」を押すと、ここに一覧が出力されます" spellcheck="false"></textarea>
+      <div class="preview-label">プレビュー</div>
+      <div id="previewHeader" class="preview-box" hidden><span class="preview-tag">ヘッダー</span><span class="preview-text"></span></div>
+      <textarea id="outputArea" class="output-area" placeholder="左のライブラリで名前をクリックすると、ここに一覧が表示されます" spellcheck="false"></textarea>
+      <div id="previewFooter" class="preview-box" hidden><span class="preview-tag">フッター</span><span class="preview-text"></span></div>
       <div class="output-actions">
         <button id="copyBtn" class="btn btn-primary">📋 コピー</button>
         <button id="saveTxtBtn" class="btn">💾 .txtで保存</button>
