@@ -174,7 +174,44 @@
     return out;
   }
 
-  const api = { LINK_PRESETS, uid, normalizeEntry, fromV1Object, parseCSV, stringifyCSV, entriesToCSV, entriesFromCSV, TEMPLATES, generate };
+  // ---- Share codes -----------------------------------------------------------
+  // A share code carries the entries of one generated list (the selection).
+  // Format: "YTV2." + base64url( UTF-8 JSON { app, kind, version, entries } )
+  const SHARE_PREFIX = 'YTV2.';
+  function encodeShareCode(entries) {
+    const payload = {
+      app: 'YTV2', kind: 'list-share', version: 2,
+      entries: (entries || []).map(e => ({
+        name: e.name, favorite: !!e.favorite,
+        tags: Array.isArray(e.tags) ? e.tags : [],
+        notes: e.notes || '',
+        links: (e.links || []).map(l => ({ label: l.label, url: l.url })),
+      })),
+    };
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    let bin = '';
+    bytes.forEach(b => { bin += String.fromCharCode(b); });
+    return SHARE_PREFIX + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function decodeShareCode(code) {
+    let s = String(code || '').trim();
+    if (!s) return null;
+    if (s.startsWith(SHARE_PREFIX)) s = s.slice(SHARE_PREFIX.length);
+    s = s.replace(/\s+/g, '');
+    if (!s) return null;
+    try {
+      let b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
+      const bin = atob(b64);
+      const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+      const obj = JSON.parse(new TextDecoder().decode(bytes));
+      const list = Array.isArray(obj) ? obj : obj && obj.entries;
+      if (!Array.isArray(list)) return null;
+      return list.map(normalizeEntry).filter(e => e.name);
+    } catch (_) { return null; }
+  }
+
+  const api = { LINK_PRESETS, uid, normalizeEntry, fromV1Object, parseCSV, stringifyCSV, entriesToCSV, entriesFromCSV, TEMPLATES, generate, SHARE_PREFIX, encodeShareCode, decodeShareCode };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.YTV2Core = api;
 })(typeof window !== 'undefined' ? window : globalThis);
