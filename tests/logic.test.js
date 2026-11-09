@@ -3,7 +3,12 @@ const assert = require('assert');
 const Core = require('../renderer/core.js');
 
 let passed = 0;
-function ok(name, fn) { fn(); passed++; console.log('  ✓', name); }
+const pending = [];
+function ok(name, fn) {
+  const r = fn();
+  if (r && typeof r.then === 'function') pending.push(r.then(() => { passed++; console.log('  ✓', name); }));
+  else { passed++; console.log('  ✓', name); }
+}
 
 console.log('YTV2 core tests');
 
@@ -65,14 +70,14 @@ ok('generate: namesOnly outputs names only', () => {
   assert.strictEqual(Core.generate(entries, Core.TEMPLATES.namesOnly), 'A');
 });
 
-ok('share code roundtrip keeps Japanese names, tags, notes and links', () => {
+ok('share code roundtrip keeps Japanese names, tags, notes and links', async () => {
   const entries = [Core.normalizeEntry({
     name: '夜風るる', favorite: true, tags: ['ゲーム', '実況'], notes: 'メモ',
     links: [{ label: 'YouTube', url: 'https://youtube.com/@ruru' }, { label: 'Twitch', url: 'https://twitch.tv/ruru' }],
   })];
-  const code = Core.encodeShareCode(entries);
+  const code = await Core.encodeShareCode(entries);
   assert.ok(code.startsWith('YTV2.'));
-  const back = Core.decodeShareCode(code);
+  const back = await Core.decodeShareCode(code);
   assert.strictEqual(back.length, 1);
   assert.strictEqual(back[0].name, '夜風るる');
   assert.deepStrictEqual(back[0].tags, ['ゲーム', '実況']);
@@ -80,10 +85,30 @@ ok('share code roundtrip keeps Japanese names, tags, notes and links', () => {
   assert.deepStrictEqual(back[0].links, entries[0].links);
 });
 
-ok('share code decode rejects garbage and empty input', () => {
-  assert.strictEqual(Core.decodeShareCode(''), null);
-  assert.strictEqual(Core.decodeShareCode('not a code !!!'), null);
-  assert.strictEqual(Core.decodeShareCode('YTV2.####'), null);
+ok('share code decode rejects garbage and empty input', async () => {
+  assert.strictEqual(await Core.decodeShareCode(''), null);
+  assert.strictEqual(await Core.decodeShareCode('not a code !!!'), null);
+  assert.strictEqual(await Core.decodeShareCode('YTV2.####'), null);
 });
 
-console.log(`\nAll ${passed} tests passed.`);
+ok('share code: v2.4.0 format (JSON object) still decodes', async () => {
+  const oldPayload = { app: 'YTV2', kind: 'list-share', version: 2, entries: [{ name: '旧太郎', favorite: false, tags: ['ゲーム'], notes: '', links: [{ label: 'YouTube', url: 'https://yt/old' }] }] };
+  const oldCode = 'YTV2.' + Buffer.from(JSON.stringify(oldPayload), 'utf-8').toString('base64url');
+  const back = await Core.decodeShareCode(oldCode);
+  assert.strictEqual(back.length, 1);
+  assert.strictEqual(back[0].name, '旧太郎');
+  assert.deepStrictEqual(back[0].links, oldPayload.entries[0].links);
+});
+
+ok('share code: compact format is much shorter than the v2.4.0 format', async () => {
+  const e = Core.normalizeEntry({ name: '夜風るる', favorite: true, tags: ['ゲーム', '実況'], notes: '', links: [
+    { label: 'YouTube', url: 'https://youtube.com/@yorukaze_ruru' },
+    { label: 'X (旧Twitter)', url: 'https://x.com/yorukaze_ruru' }] });
+  const code = await Core.encodeShareCode([e]);
+  const oldLen = ('YTV2.' + Buffer.from(JSON.stringify({ app: 'YTV2', kind: 'list-share', version: 2, entries: [e] }), 'utf-8').toString('base64url')).length;
+  assert.ok(code.length < oldLen * 0.6, `expected much shorter: ${code.length} vs old ${oldLen}`);
+});
+
+Promise.all(pending).then(() => {
+  console.log(`\nAll ${passed} tests passed.`);
+}).catch(err => { console.error(err); process.exit(1); });
