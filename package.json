@@ -19,7 +19,8 @@
       "createStartMenuShortcut": true,
       "license": "LICENSE",
       "oneClick": false,
-      "shortcutName": "YTV2 一覧生成ツール"
+      "shortcutName": "YTV2 一覧生成ツール",
+      "runAfterFinish": false
     },
     "productName": "YTV2 一覧生成ツール",
     "win": {
@@ -56,7 +57,7 @@
     "start": "electron .",
     "test": "node tests/logic.test.js"
   },
-  "version": "2.5.0",
+  "version": "2.5.1",
   "dependencies": {
     "electron-updater": "^6.3.9"
   }
